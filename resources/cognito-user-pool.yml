@@ -1,0 +1,53 @@
+Resources:
+  CognitoUserPool:
+    Type: "AWS::Cognito::UserPool"
+    Properties:
+      MfaConfiguration: OFF
+      UserPoolName: ${self:custom.userPoolName}
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: True
+        - AttributeDataType: String
+          Name: name
+          Required: True
+      # UsernameAttributes:
+      #   - email
+      AutoVerifiedAttributes:
+        - email
+      AliasAttributes: 
+        - email
+        - phone_number
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: False
+          RequireNumbers: True
+          RequireSymbols: False
+          RequireUppercase: True
+      VerificationMessageTemplate:
+        DefaultEmailOption: "CONFIRM_WITH_CODE"
+        EmailMessage: "Your verification code for Serverless Boilerplate is {####}."
+        EmailSubject: "Your Verification Code"
+  CognitoUserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      ClientName: ${self:custom.userPoolClientName}
+      GenerateSecret: False
+      UserPoolId:
+        Ref: CognitoUserPool
+      # LogoutURLs:
+      #   - 'http://localhost:3000/'
+      # CallbackURLs:
+      #   - 'http://localhost:3000/'
+      # SupportedIdentityProviders:
+      #   - 'COGNITO'
+      #   - 'Google'
+Outputs:
+  UserPoolId:
+    Value:
+      Ref: CognitoUserPool
+
+  UserPoolClientId:
+    Value:
+      Ref: CognitoUserPoolClient

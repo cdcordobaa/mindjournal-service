@@ -1,0 +1,35 @@
+createTask:
+  handler: src/infrastructure/handlers/createTask.handler
+  events:
+    - http:
+        path: tasks
+        method: post
+        cors: true
+updateTask:
+  handler: src/infrastructure/handlers/updateTask.handler
+  events:
+    - http:
+        path: tasks/{taskId}
+        method: put
+        cors: true
+getAllTasks:
+  handler: src/infrastructure/handlers/getAllTasks.handler
+  events:
+    - http:
+        path: tasks
+        method: get
+        cors: true
+getTaskById:
+  handler: src/infrastructure/handlers/getTask.handler
+  events:
+    - http:
+        path: tasks/{taskId}
+        method: get
+        cors: true
+deleteTask:
+  handler: src/infrastructure/handlers/deleteTask.handler
+  events:
+    - http:
+        path: tasks/{taskId}
+        method: delete
+        cors: true
