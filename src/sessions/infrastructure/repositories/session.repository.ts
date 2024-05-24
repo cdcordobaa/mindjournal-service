@@ -6,161 +6,101 @@ import {
   ScanCommand,
   DeleteItemCommand,
 } from "@aws-sdk/client-dynamodb";
-import { Task } from "../../domain/entities/session";
+import { Session } from "../../domain/entities/session";
 
-const TASK_TABLE = process.env.TASK_TABLE ?? `task-kanban-service-dev-table`;
-export interface TaskRepository {
-  add(task: Task): Promise<Task>;
-  update(task: Task): Promise<Task>;
-  getAll(): Promise<Task[]>;
-  getById(taskId: string): Promise<Task | null>;
-  getAllByBoardId(boardId: string): Promise<Task[]>;
-  delete(taskId: string): Promise<void>;
+const SESSION_TABLE = process.env.SESSION_TABLE ?? `session-service-dev-table`;
+
+export interface SessionRepository {
+  add(session: Session): Promise<Session>;
+  update(session: Session): Promise<Session>;
+  getAll(): Promise<Session[]>;
+  getById(sessionId: string): Promise<Session | null>;
+  delete(sessionId: string): Promise<void>;
 }
 
-export function createTaskRepository(client: DynamoDBClient): TaskRepository {
-  return {
-    async add(task: Task): Promise<Task> {
-      const createdAtISO =
-        task.createdAt instanceof Date
-          ? task.createdAt.toISOString()
-          : new Date().toISOString();
-      const updatedAtISO =
-        task.updatedAt instanceof Date
-          ? task.updatedAt.toISOString()
-          : new Date().toISOString();
+export const createSessionRepository = (
+  client: DynamoDBClient,
+): SessionRepository => ({
+  add: async (session: Session): Promise<Session> => {
+    const command = new PutItemCommand({
+      TableName: SESSION_TABLE,
+      Item: {
+        sessionId: { S: session.id },
+        userId: { S: session.userId },
+        emotionalState: { S: JSON.stringify(session.emotionalState) },
+        settings: { S: JSON.stringify(session.settings) },
+        createdAt: { S: session.createdAt.toISOString() },
+        updatedAt: { S: session.updatedAt.toISOString() },
+      },
+    });
+    await client.send(command);
+    return session;
+  },
 
-      const command = new PutItemCommand({
-        TableName: TASK_TABLE,
-        Item: {
-          taskId: { S: task.id },
-          title: { S: task.title },
-          description: { S: task.description },
-          status: { S: task.status },
-          createdAt: { S: createdAtISO },
-          updatedAt: { S: updatedAtISO },
-          userId: { S: task.userId },
-          boardId: { S: task.boardId },
-        },
-      });
-      await client.send(command);
-      return task;
-    },
-    async update(task: Task): Promise<Task> {
-      const updatedAtISO =
-        task.updatedAt instanceof Date
-          ? task.updatedAt.toISOString()
-          : new Date().toISOString();
+  update: async (session: Session): Promise<Session> => {
+    const command = new UpdateItemCommand({
+      TableName: SESSION_TABLE,
+      Key: {
+        sessionId: { S: session.id },
+      },
+      UpdateExpression:
+        "SET userId = :userId, emotionalState = :emotionalState, settings = :settings, updatedAt = :updatedAt",
+      ExpressionAttributeValues: {
+        ":userId": { S: session.userId },
+        ":emotionalState": { S: JSON.stringify(session.emotionalState) },
+        ":settings": { S: JSON.stringify(session.settings) },
+        ":updatedAt": { S: session.updatedAt.toISOString() },
+      },
+    });
+    await client.send(command);
+    return session;
+  },
 
-      const command = new UpdateItemCommand({
-        TableName: TASK_TABLE,
-        Key: {
-          taskId: { S: task.id },
-        },
-        UpdateExpression:
-          "SET #status = :status, title = :title, description = :description, updatedAt = :updatedAt",
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":status": { S: task.status },
-          ":title": { S: task.title },
-          ":description": { S: task.description },
-          ":updatedAt": { S: updatedAtISO },
-        },
-      });
-      await client.send(command);
-      return task;
-    },
-    async getAll(): Promise<Task[]> {
-      const command = new ScanCommand({
-        TableName: TASK_TABLE,
-      });
-      const response = await client.send(command);
-      if (response.Items) {
-        return response.Items.map((item) => {
-          return {
-            id: item.taskId?.S ?? "",
-            title: item.title?.S ?? "",
-            description: item.description?.S ?? "",
-            status: item.status?.S as "Todo" | "In Progress" | "Done",
-            createdAt: item.createdAt?.S
-              ? new Date(item.createdAt.S)
-              : new Date(),
-            updatedAt: item.updatedAt?.S
-              ? new Date(item.updatedAt.S)
-              : new Date(),
-            userId: item.userId?.S ?? "",
-            boardId: item.boardId?.S ?? "",
-          };
-        });
-      }
-      return [];
-    },
-    async getById(taskId: string): Promise<Task | null> {
-      const command = new GetItemCommand({
-        TableName: TASK_TABLE,
-        Key: {
-          taskId: { S: taskId },
-        },
-      });
-      const response = await client.send(command);
-      if (response.Item) {
-        const item = response.Item;
-        return {
-          id: item.taskId?.S ?? "",
-          title: item.title?.S ?? "",
-          description: item.description?.S ?? "",
-          status: item.status?.S as "Todo" | "In Progress" | "Done",
-          createdAt: item.createdAt?.S
-            ? new Date(item.createdAt.S)
-            : new Date(),
-          updatedAt: item.updatedAt?.S
-            ? new Date(item.updatedAt.S)
-            : new Date(),
+  getAll: async (): Promise<Session[]> => {
+    const command = new ScanCommand({
+      TableName: SESSION_TABLE,
+    });
+    const response = await client.send(command);
+    return (
+      response.Items?.map((item) => ({
+        id: item.sessionId?.S ?? "",
+        userId: item.userId?.S ?? "",
+        emotionalState: JSON.parse(item.emotionalState?.S ?? "{}"),
+        settings: JSON.parse(item.settings?.S ?? "{}"),
+        createdAt: new Date(item.createdAt?.S ?? ""),
+        updatedAt: new Date(item.updatedAt?.S ?? ""),
+      })) ?? []
+    );
+  },
+
+  getById: async (sessionId: string): Promise<Session | null> => {
+    const command = new GetItemCommand({
+      TableName: SESSION_TABLE,
+      Key: {
+        sessionId: { S: sessionId },
+      },
+    });
+    const response = await client.send(command);
+    const item = response.Item;
+    return item
+      ? {
+          id: item.sessionId?.S ?? "",
           userId: item.userId?.S ?? "",
-          boardId: item.boardId?.S ?? "",
-        };
-      }
-      return null;
-    },
-    async getAllByBoardId(boardId: string): Promise<Task[]> {
-      const command = new ScanCommand({
-        TableName: TASK_TABLE,
-        FilterExpression: "boardId = :boardId",
-        ExpressionAttributeValues: {
-          ":boardId": { S: boardId },
-        },
-      });
-      const response = await client.send(command);
-      if (response.Items) {
-        return response.Items.map((item) => {
-          return {
-            id: item.taskId?.S ?? "",
-            title: item.title?.S ?? "",
-            description: item.description?.S ?? "",
-            status: item.status?.S as "Todo" | "In Progress" | "Done",
-            createdAt: item.createdAt?.S
-              ? new Date(item.createdAt.S)
-              : new Date(),
-            updatedAt: item.updatedAt?.S
-              ? new Date(item.updatedAt.S)
-              : new Date(),
-            userId: item.userId?.S ?? "",
-            boardId: item.boardId?.S ?? "",
-          };
-        });
-      }
-      return [];
-    },
-    async delete(taskId: string): Promise<void> {
-      const command = new DeleteItemCommand({
-        TableName: TASK_TABLE,
-        Key: {
-          taskId: { S: taskId },
-        },
-      });
-      await client.send(command);
-    },
-  };
-}
+          emotionalState: JSON.parse(item.emotionalState?.S ?? "{}"),
+          settings: JSON.parse(item.settings?.S ?? "{}"),
+          createdAt: new Date(item.createdAt?.S ?? ""),
+          updatedAt: new Date(item.updatedAt?.S ?? ""),
+        }
+      : null;
+  },
+
+  delete: async (sessionId: string): Promise<void> => {
+    const command = new DeleteItemCommand({
+      TableName: SESSION_TABLE,
+      Key: {
+        sessionId: { S: sessionId },
+      },
+    });
+    await client.send(command);
+  },
+});
