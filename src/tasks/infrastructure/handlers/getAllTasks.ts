@@ -1,6 +1,9 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
 import { getAllTasksUseCase } from "../../application/usecases";
-import { success, failure } from "../../utils/responses";
+import {
+  success,
+  failure,
+} from "../../../sessionBuilder/infrastructure/utils/responses";
 
 export const handler: APIGatewayProxyHandler = async () => {
   try {

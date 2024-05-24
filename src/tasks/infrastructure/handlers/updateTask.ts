@@ -1,8 +1,11 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
 import { TaskDto } from "../../domain/entities/task";
-import { parseAndValidateTaskDto } from "../../utils/validators";
+import { parseAndValidateTaskDto } from "../../../sessionBuilder/infrastructure/utils/validators";
 import { updateTaskUseCase } from "../../application/usecases";
-import { success, failure } from "../../utils/responses";
+import {
+  success,
+  failure,
+} from "../../../sessionBuilder/infrastructure/utils/responses";
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {
