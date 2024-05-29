@@ -4,13 +4,13 @@ import { TestData } from '../../interfaces/Data';
 
 import { createDomainEventPublisherService } from '../../application/services/DomainEventPublisherService';
 
-import { createDynamoDbRepository } from '../repositories/DynamoDbRepository';
-import { createLocalRepository } from '../repositories/LocalRepository';
+import { createDynamoDbRepository } from "../repositories/DynamoDbRepository";
 
-import { createEventBridgeEmitter } from '../emitters/EventBridgeEmitter';
-import { createLocalEmitter } from '../emitters/LocalEmitter';
+import { createEventBridgeEmitter } from "../emitters/EventBridgeEmitter";
+import { createLocalEmitter } from "../emitters/LocalEmitter";
+import { setEnv } from "../../../utils/testUtils";
+import { createLocalRepository } from "../repositories/LocalRepository";
 
-import { setEnv } from '../../../testUtils';
 
 /**
  * @description Utility that returns a complete dependencies object

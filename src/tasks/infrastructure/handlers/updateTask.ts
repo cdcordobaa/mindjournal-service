@@ -1,6 +1,6 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
 import { TaskDto } from "../../domain/entities/task";
-import { parseAndValidateTaskDto } from "../../../sessionBuilder/infrastructure/utils/validators";
+import { parseAndValidateTaskDto } from "../../../sessionBuilder/infrastructure/utils/validators/validators";
 import { updateTaskUseCase } from "../../application/usecases";
 import {
   success,

@@ -1,7 +1,7 @@
-import { SessionCreationInput } from "../adapters/handlers/createSession";
 import * as yup from "yup";
+import { CreateSessionInput } from "../../../interfaces/SessionInput";
 
-const sessionCreationInputSchema = yup.object({
+const CreateSessionInputSchema = yup.object({
   userId: yup.string().required(),
   emotionalState: yup
     .object({
@@ -19,9 +19,9 @@ const sessionCreationInputSchema = yup.object({
   files: yup.object().required(),
 });
 
-export const parseAndValidateCreateSessionInput = async (
+export const parseAndValidateSessionCreationInput = async (
   body: string | null,
-): Promise<SessionCreationInput> => {
+): Promise<CreateSessionInput> => {
   if (!body) throw new Error("Request body is empty");
   let parsedBody;
   try {
@@ -30,9 +30,9 @@ export const parseAndValidateCreateSessionInput = async (
     throw new Error("Invalid JSON format");
   }
   try {
-    await sessionCreationInputSchema.validate(parsedBody, { strict: true });
+    await CreateSessionInputSchema.validate(parsedBody, { strict: true });
   } catch (validationError) {
     throw new Error(`Validation error: ${validationError}`);
   }
-  return parsedBody as SessionCreationInput;
+  return parsedBody as CreateSessionInput;
 };

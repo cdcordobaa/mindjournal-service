@@ -7,8 +7,6 @@ import {
   EventDTO,
   MakeEventInput,
   MetadataInput,
-  DetailType,
-  Event,
 } from "../../interfaces/Event";
 import { Metadata, MetadataConfigInput } from "../../interfaces/Metadata";
 
@@ -22,7 +20,7 @@ import { MissingEnvVarsError } from "../../errors/MissingEnvVarsError";
  * @description Vend a "Event Carried State Transfer" type event with state
  * that can be emitted with an emitter implementation.
  */
-abstract class EmittableEvent implements Event {
+abstract class EmittableEvent {
   private readonly event: EventBridgeEvent;
   private readonly eventBusName: string;
   private readonly metadataConfig: MetadataConfigInput;
@@ -67,7 +65,6 @@ abstract class EmittableEvent implements Event {
       },
       data: {
         event: eventName,
-        userId: eventInput.userId || "Unknown",
         sessionId,
         sessionStatus,
       },
@@ -139,10 +136,10 @@ abstract class EmittableEvent implements Event {
    * @description Pick out matching `detail-type` field from event names.
    * @note Should be refactored to regex solution if this grows.
    */
-  private matchDetailType(eventName: string): DetailType {
+  private matchDetailType(eventName: string) {
     switch (eventName) {
       case "SESSION_CREATED":
-        return "SessionCreated";
+        return "SessionCreated" as const;
       default:
         throw new NoMatchInEventCatalogError(eventName);
     }
@@ -153,21 +150,6 @@ abstract class EmittableEvent implements Event {
    */
   public get() {
     return this.event;
-  }
-
-  public getAnalyticsVariant(analyticsBusName: string): EventBridgeEvent {
-    const analyticsEvent: EventBridgeEvent = JSON.parse(
-      JSON.stringify(this.get()),
-    );
-    const detail = JSON.parse(analyticsEvent.Detail);
-
-    analyticsEvent["EventBusName"] = analyticsBusName;
-    detail["metadata"]["id"] = randomUUID().toString();
-    if (detail.data?.slotStatus) delete detail["data"]["slotStatus"];
-
-    analyticsEvent["Detail"] = JSON.stringify(detail);
-
-    return analyticsEvent;
   }
 }
 

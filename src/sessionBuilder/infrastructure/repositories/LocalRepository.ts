@@ -1,9 +1,7 @@
-import { Repository } from '../../interfaces/Repository';
-import { SlotDTO, SlotId } from '../../interfaces/Slot';
-
-import { slots } from '../../../testdata/TestDatabase';
-import { Event } from '../../interfaces/Event';
-import { TestData } from '../../interfaces/Data';
+import { Repository } from "../../interfaces/Repository";
+import { Event } from "../../interfaces/Event";
+import { SessionDTO, SessionId } from "../../interfaces/Session";
+import { TestData } from "../../interfaces/Data";
 
 /**
  * @description Factory function for local repository.
@@ -11,50 +9,36 @@ import { TestData } from '../../interfaces/Data';
 export function createLocalRepository(testData?: TestData): LocalRepository {
   return new LocalRepository(testData);
 }
-
-/**
- * @description The local repo acts as a simple mock for testing and similar purposes.
- * The `LocalRepository` can optionally be initialized with custom test data, else will default
- * to a set of functional test data.
- */
 class LocalRepository implements Repository {
-  slots: SlotDTO[];
+  sessions: SessionDTO[] = [];
   events: Event[] = [];
 
   constructor(testData?: TestData) {
-    this.slots = testData ? testData : slots;
+    this.sessions = testData?.sessions ?? [];
   }
 
-  /**
-   * @description Load a Slot from the source database.
-   */
-  async loadSlot(slotId: SlotId): Promise<SlotDTO> {
-    const slot: SlotDTO[] = this.slots.filter((slot: SlotDTO) => slot.slotId === slotId);
-    console.log('Loaded slot:', slot);
-    return slot[0];
+  async loadSession(sessionId: SessionId): Promise<SessionDTO> {
+    const session = this.sessions.find((s) => s.sessionId === sessionId);
+    if (!session) throw new Error("Session not found");
+    return session;
   }
 
-  /**
-   * @description Load all Slots for the day from the source database.
-   */
-  public async loadSlots(): Promise<SlotDTO[]> {
-    return this.slots;
+  async updateSession(session: SessionDTO): Promise<void> {
+    const index = this.sessions.findIndex(
+      (s) => s.sessionId === session.sessionId,
+    );
+    if (index !== -1) {
+      this.sessions[index] = session;
+    } else {
+      this.sessions.push(session);
+    }
   }
 
-  /**
-   * @description Add (create/update) a Slot to the source database.
-   */
-  public async updateSlot(slot: SlotDTO): Promise<void> {
-    const { slotId } = slot;
-    const slots: SlotDTO[] = this.slots.filter((slot: SlotDTO) => slot.slotId !== slotId);
-    slots.push(slot);
-    this.slots = slots;
+  async createSession(session: SessionDTO): Promise<void> {
+    this.sessions.push(session);
   }
 
-  /**
-   * @description Add (append) an Event in the source database.
-   */
-  public async addEvent(event: Event): Promise<void> {
+  async addEvent(event: Event): Promise<void> {
     this.events.push(event);
   }
 }

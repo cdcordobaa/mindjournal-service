@@ -1,5 +1,5 @@
-import { SlotId, Status } from './Slot';
-import { Metadata, MetadataConfigInput } from './Metadata';
+import { SessionId, SessionStatus } from "./Session";
+import { Metadata, MetadataConfigInput } from "./Metadata";
 
 /**
  * @description Represents emittable events.
@@ -36,25 +36,21 @@ export type MakeEventInput = {
    */
   eventName: UserInteractionEvent | SystemInteractionEvent;
   /**
-   * @description The slot ID relating to this event.
+   * @description The ID of the user that created this session.
    */
-  slotId: SlotId;
+  userId: string;
   /**
-   * @description Status of the slot.
+   * @description The session ID relating to this event.
    */
-  slotStatus: Status;
+  sessionId: SessionId;
+  /**
+   * @description Status of the session.
+   */
+  sessionStatus: SessionStatus;
   /**
    * @description Optional. The version of the event.
    */
   version?: number;
-  /**
-   * @description The name of the host. Used for analytical events.
-   */
-  hostName?: string;
-  /**
-   * @description Start time of the slot in ISO format. Used for analytical events.
-   */
-  startTime?: string;
 };
 
 /**
@@ -129,17 +125,19 @@ type Data = Record<string, any> | string;
  * @description Represents valid user interaction events.
  */
 type UserInteractionEvent =
-  | 'CREATED'
-  | 'CANCELLED'
-  | 'UNATTENDED'
-  | 'RESERVED'
-  | 'CHECKED_IN'
-  | 'CHECKED_OUT';
+  | "SESSION_CREATED"
+  | "SESSION_STARTED"
+  | "SESSION_PAUSED"
+  | "SESSION_RESUMED"
+  | "SESSION_FINISHED"
+  | "SESSION_DELETED";
 
 /**
  * @description Represents valid system interaction events.
  */
-type SystemInteractionEvent = 'OPENED' | 'CLOSED';
+type SystemInteractionEvent =
+  | "SESSION_BUILDING_STARTED"
+  | "SESSION_BUILDING_FINISHED";
 
 /**
  * @description Valid EventBridge detail types.
@@ -149,15 +147,17 @@ export type DetailType = UserInteractedDetailType | SystemInteractedDetailType;
 /**
  * @description Detail types that come from user interactions.
  */
-type UserInteractedDetailType =
-  | 'Created'
-  | 'Cancelled'
-  | 'Unattended'
-  | 'Reserved'
-  | 'CheckedIn'
-  | 'CheckedOut';
+export type UserInteractedDetailType =
+  | "SessionCreated"
+  | "SessionStarted"
+  | "SessionPaused"
+  | "SessionResumed"
+  | "SessionFinished"
+  | "SessionDeleted";
 
 /**
  * @description Detail types that come from system interactions.
  */
-type SystemInteractedDetailType = 'Opened' | 'Closed';
+export type SystemInteractedDetailType =
+  | "SessionBuildingStarted"
+  | "SessionBuildingFinished";

@@ -1,5 +1,5 @@
-import { SlotDTO } from './Slot';
+import { SessionDTO } from "./Session";
 
 export type TestData = {
-  slots?: SlotDTO[];
+  sessions?: SessionDTO[];
 };

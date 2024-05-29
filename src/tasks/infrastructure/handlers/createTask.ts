@@ -5,7 +5,7 @@ import {
   success,
   failure,
 } from "../../../sessionBuilder/infrastructure/utils/responses";
-import { parseAndValidateTaskDto } from "../../../sessionBuilder/infrastructure/utils/validators";
+import { parseAndValidateTaskDto } from "../../../sessionBuilder/infrastructure/utils/validators/validators";
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {

@@ -75,7 +75,7 @@ export class ReservationService {
   public async makeDailySlots(): Promise<string[]> {
     const slots: SlotDTO[] = [];
 
-    const startHour = 6; // Zulu time (GMT) -> 08:00 in CEST
+    const startHour = 6; 
     const numberHours = 10;
 
     for (let slotCount = 0; slotCount < numberHours; slotCount++) {

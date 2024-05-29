@@ -16,7 +16,8 @@ import { MissingEnvVarsError } from '../../errors/MissingEnvVarsError';
 
 import { getCleanedItems } from '../utils/getCleanedItems';
 
-import testData from '../../../testdata/dynamodb/testData.json';
+import { testData } from "../../../utils/testData";
+import { SessionDTO, SessionId } from "../../interfaces/Session";
 
 /**
  * @description Factory function to create a DynamoDB repository.
@@ -35,99 +36,18 @@ class DynamoDbRepository implements Repository {
   region: string;
 
   constructor() {
-    this.region = process.env.REGION || '';
-    this.tableName = process.env.TABLE_NAME || '';
+    this.region = process.env.REGION || "";
+    this.tableName = process.env.TABLE_NAME || "";
 
     if (!this.region || !this.tableName)
       throw new MissingEnvVarsError(
         JSON.stringify([
-          { key: 'REGION', value: process.env.REGION },
-          { key: 'TABLE_NAME', value: process.env.TABLE_NAME }
-        ])
+          { key: "REGION", value: process.env.REGION },
+          { key: "TABLE_NAME", value: process.env.TABLE_NAME },
+        ]),
       );
 
     this.docClient = new DynamoDBClient({ region: this.region });
-  }
-
-  /**
-   * @description Create and return expiration time for database item.
-   */
-  private getExpiryTime(): string {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    return Date.parse(tomorrow.toString()).toString().substring(0, 10);
-  }
-
-  /**
-   * @description Load a Slot from the source database.
-   */
-  public async loadSlot(slotId: SlotId): Promise<SlotDTO> {
-    const command = {
-      TableName: this.tableName,
-      KeyConditionExpression: 'itemType = :itemType AND id = :id',
-      ExpressionAttributeValues: {
-        ':itemType': { S: 'SLOT' },
-        ':id': { S: slotId }
-      },
-      ProjectionExpression: 'id, hostName, timeSlot, slotStatus, createdAt, updatedAt'
-    };
-
-    const data: QueryCommandOutput | DynamoItems =
-      process.env.NODE_ENV === 'test'
-        ? testData
-        : await this.docClient.send(new QueryCommand(command));
-    const items =
-      (data.Items?.map((item: Record<string, AttributeValue>) => item) as DynamoItem[]) || [];
-
-    return getCleanedItems(items)[0] as unknown as SlotDTO;
-  }
-
-  /**
-   * @description Load all Slots for the day from the source database.
-   */
-  public async loadSlots(): Promise<SlotDTO[]> {
-    const command = {
-      TableName: this.tableName,
-      KeyConditionExpression: 'itemType = :itemType',
-      ExpressionAttributeValues: {
-        ':itemType': { S: 'SLOT' }
-      },
-      ProjectionExpression: 'id, hostName, timeSlot, slotStatus, createdAt, updatedAt'
-    };
-
-    const data: QueryCommandOutput | DynamoItems =
-      process.env.NODE_ENV === 'test'
-        ? testData
-        : await this.docClient.send(new QueryCommand(command));
-    const items =
-      (data.Items?.map((item: Record<string, AttributeValue>) => item) as DynamoItem[]) || [];
-
-    return getCleanedItems(items);
-  }
-
-  /**
-   * @description Add (create/update) a slot in the source database.
-   */
-  public async updateSlot(slot: SlotDTO): Promise<void> {
-    const { slotId, hostName, timeSlot, slotStatus, createdAt, updatedAt } = slot;
-
-    const expiresAt = this.getExpiryTime();
-    const command = {
-      TableName: this.tableName,
-      Item: {
-        itemType: { S: 'SLOT' },
-        id: { S: slotId },
-        hostName: { S: hostName || '' },
-        timeSlot: { S: JSON.stringify(timeSlot) },
-        slotStatus: { S: slotStatus },
-        createdAt: { S: createdAt },
-        updatedAt: { S: updatedAt },
-        expiresAt: { N: expiresAt }
-      }
-    };
-
-    if (process.env.NODE_ENV !== 'test') await this.docClient.send(new PutItemCommand(command));
   }
 
   /**
@@ -135,20 +55,81 @@ class DynamoDbRepository implements Repository {
    */
   public async addEvent(event: Event): Promise<void> {
     const eventData = event.get();
-    const detail: EventDetail = JSON.parse(eventData['Detail']);
-    const data = typeof detail['data'] === 'string' ? JSON.parse(detail['data']) : detail['data'];
+    const detail: EventDetail = JSON.parse(eventData["Detail"]);
+    const data =
+      typeof detail["data"] === "string"
+        ? JSON.parse(detail["data"])
+        : detail["data"];
 
     const command = {
       TableName: this.tableName,
       Item: {
-        itemType: { S: 'EVENT' },
+        itemType: { S: "EVENT" },
         id: { S: randomUUID() },
-        eventTime: { S: detail['metadata']['timestamp'] },
-        eventType: { S: data['event'] },
-        event: { S: JSON.stringify(eventData) }
-      }
+        eventTime: { S: detail["metadata"]["timestamp"] },
+        eventType: { S: data["event"] },
+        event: { S: JSON.stringify(eventData) },
+      },
     };
 
-    if (process.env.NODE_ENV !== 'test') await this.docClient.send(new PutItemCommand(command));
+    if (process.env.NODE_ENV !== "test")
+      await this.docClient.send(new PutItemCommand(command));
+  }
+
+  public async loadSession(sessionId: SessionId): Promise<SessionDTO> {
+    const command = {
+      TableName: this.tableName,
+      KeyConditionExpression: "itemType = :itemType AND id = :id",
+      ExpressionAttributeValues: {
+        ":itemType": { S: "SESSION" },
+        ":id": { S: sessionId },
+      },
+      ProjectionExpression: "id, sessionData, createdAt, updatedAt",
+    };
+
+    const data: QueryCommandOutput | DynamoItems =
+      process.env.NODE_ENV === "test"
+        ? testData
+        : await this.docClient.send(new QueryCommand(command));
+    const items =
+      (data.Items?.map(
+        (item: Record<string, AttributeValue>) => item,
+      ) as DynamoItem[]) || [];
+
+    return getCleanedItems(items)[0] as unknown as SessionDTO;
+  }
+
+  public async updateSession(session: SessionDTO): Promise<void> {
+    const { sessionId, createdAt, updatedAt } = session;
+
+    const command = {
+      TableName: this.tableName,
+      Item: {
+        itemType: { S: "SESSION" },
+        id: { S: sessionId },
+        createdAt: { S: createdAt },
+        updatedAt: { S: updatedAt },
+      },
+    };
+
+    if (process.env.NODE_ENV !== "test")
+      await this.docClient.send(new PutItemCommand(command));
+  }
+
+  public async createSession(session: SessionDTO): Promise<void> {
+    const { sessionId, createdAt, updatedAt } = session;
+
+    const command = {
+      TableName: this.tableName,
+      Item: {
+        itemType: { S: "SESSION" },
+        id: { S: sessionId || randomUUID() },
+        createdAt: { S: createdAt },
+        updatedAt: { S: updatedAt },
+      },
+    };
+
+    if (process.env.NODE_ENV !== "test")
+      await this.docClient.send(new PutItemCommand(command));
   }
 }

@@ -33,6 +33,7 @@
   "homepage": "https://github.com/rpidanny/serverless-cognito-boilerplate#readme",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.556.0",
+    "@aws-sdk/client-eventbridge": "^3.583.0",
     "aws-crt": "^1.21.2",
     "aws-lambda": "^1.0.7",
     "mikrolog": "^2.1.15",
