@@ -1,0 +1,102 @@
+service: ${self:custom.projectName}
+
+plugins:
+  - serverless-plugin-typescript  
+  - serverless-offline  
+  - serverless-plugin-include-dependencies
+  - serverless-dynamodb-local
+
+package:
+  individually: true
+  include:
+    # - src/assets/**/*
+  exclude:
+    - node_modules/**
+    - README.md
+    - package.json
+    - package-lock.json
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  versionFunctions: false
+  profile: arkatechie-sso
+  tracing:
+    lambda: true
+    # apiGateway: true
+  stage: ${self:custom.currentStage}
+  stackTags:
+    PROJECT: ${self:service}
+    STAGE: ${opt:stage, self:provider.stage}
+  tags:
+    PROJECT: ${self:service}
+    STAGE: ${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:PutObject"
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: DataBucket
+            - "/*"
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:DescribeTable"
+        - "dynamodb:Query"
+        - "dynamodb:Scan"
+        - "dynamodb:GetItem"
+        - "dynamodb:PutItem"
+        - "dynamodb:UpdateItem"
+        - "dynamodb:DeleteItem"
+      Resource:
+        - Fn::Join:
+            - ''
+            - - 'arn:aws:dynamodb:'
+              - Ref: AWS::Region
+              - ':'
+              - Ref: AWS::AccountId
+              - ':table/task-'
+              - !Sub '${self:service}-${self:provider.stage}-table'
+
+custom:
+  projectName: mindjorunal-service
+  defaultStage: ${opt:stage, 'dev'}
+  currentStage: ${opt:stage, self:custom.defaultStage}
+  userPoolName: ${self:service}-${self:provider.stage}-userpool
+  userPoolClientName: ${self:service}-${self:provider.stage}-webclient
+  identityPoolName:
+    Fn::Join:
+      - ''
+      - !Split ['-', '${self:service}-${self:provider.stage}-identitypool']
+  dynamoDbTableName: ${self:service}-${self:provider.stage}-table
+  dataBucketName: ${self:service}-${self:provider.stage}-databucket-${opt:stage, self:provider.stage}-${aws:region}
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+
+functions:
+  - ${file(functions/helloworld.yml)}
+  - ${file(functions/taskFunctions.yml)}
+
+resources:
+  - ${file(resources/cognito-user-pool.yml)}
+  - ${file(resources/cognito-identity-pool.yml)}  
+  - ${file(resources/s3-bucket.yml)}
+  - ${file(resources/dynamodb-table.yml)}
+  - Resources:
+      TaskTable:
+        Type: "AWS::DynamoDB::Table"
+        Properties:
+          TableName: task-${self:custom.dynamoDbTableName}
+          AttributeDefinitions:
+            - AttributeName: "taskId"
+              AttributeType: "S"
+          KeySchema:
+            - AttributeName: "taskId"
+              KeyType: "HASH"
+          BillingMode: PAY_PER_REQUEST

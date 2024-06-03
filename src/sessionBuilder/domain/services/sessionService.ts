@@ -53,7 +53,8 @@ export class SessionService {
         ),
       );
     await this.repository.addEvent(event);
-    await this.domainEventPublisher.publish(event);
+    await this.repository.updateSession(sessionDto);
+    // await this.domainEventPublisher.publish(event);
   }
 
   public async createSession(

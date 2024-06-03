@@ -12,6 +12,7 @@
     "sls:version": "sls --version",
     "sls:deploy": "npm run test && export SLS_DEBUG=* && serverless deploy",
     "sls:remove": "serverless remove",
+    "start:debug": "node --inspect ./node_modules/.bin/serverless offline --noPrependStageInUrl --noAuth --httpPort 3000 --lambdaPort 3001 --noTimeout",
     "release": "semantic-release",
     "build": "npm run clean && tsc",
     "clean": "rm -rf .build"
@@ -69,7 +70,9 @@
     "semantic-release": "^23.0.8",
     "serverless": "^3.38.0",
     "serverless-dynamodb-local": "^0.2.40",
-    "serverless-offline": "^13.3.4",
+    "serverless-esbuild": "^1.52.1",
+    "serverless-iam-roles-per-function": "^3.2.0",
+    "serverless-offline": "^13.6.0",
     "serverless-plugin-include-dependencies": "^6.0.0",
     "serverless-plugin-typescript": "^2.1.5",
     "ts-jest": "^29.1.2",

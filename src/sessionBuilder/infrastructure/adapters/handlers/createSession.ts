@@ -28,6 +28,7 @@ export async function handler(
       context,
     });
 
+    console.log("event", event);
     const dependencies = setupDependencies(metadataConfig("CreateSession"));
 
     const sessionInput: CreateSessionInput =

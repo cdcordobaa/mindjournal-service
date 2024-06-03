@@ -16,7 +16,6 @@ const CreateSessionInputSchema = yup.object({
       duration: yup.string().required(),
     })
     .required(),
-  files: yup.object().required(),
 });
 
 export const parseAndValidateSessionCreationInput = async (
