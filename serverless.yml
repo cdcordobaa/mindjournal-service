@@ -35,9 +35,16 @@ provider:
             - '*'
         - Effect: 'Allow'
           Action:
+            - dynamodb:DescribeTable
             - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
             - dynamodb:PutItem
-          Resource: ${self:custom.aws.databaseArn}
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - ${self:custom.aws.databaseArn}
+            - ${self:custom.aws.eventsTableArn}
         - Effect: Allow
           Action:
             - events:PutEvents
@@ -50,6 +57,7 @@ provider:
     REGION: ${self:provider.region}
     TABLE_NAME: ${self:custom.config.tableName}
     SECURITY_API_ENDPOINT_GENERATE: ${self:custom.aws.securityApiEndpointGenerateCode}
+    EVENTS_TABLE_NAME: ${self:custom.config.eventsTableName}
 
 plugins:
   - serverless-esbuild
@@ -76,6 +84,7 @@ custom:
     analyticsBusName: analytics
     domainBusName: sessions
     tableName: sessions
+    eventsTableName: domain_events
     apiGatewayCachingTtl:
       prod: 30
       shared: 0
@@ -85,6 +94,7 @@ custom:
     analyticsBusArn: arn:aws:events:${self:provider.region}:${self:custom.config.awsAccountNumber}:event-bus/${self:custom.config.analyticsBusName}
     domainBusArn: arn:aws:events:${self:provider.region}:${self:custom.config.awsAccountNumber}:event-bus/${self:custom.config.domainBusName}
     databaseArn: arn:aws:dynamodb:${self:provider.region}:${self:custom.config.awsAccountNumber}:table/${self:custom.config.tableName}
+    eventsTableArn: arn:aws:dynamodb:${self:provider.region}:${self:custom.config.awsAccountNumber}:table/${self:custom.config.eventsTableName}
     securityApiEndpointGenerateCode: https://${self:custom.config.securityApiGatewayRandomString}.execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}/generateCode
     securityApiEndpointVerifyCode: https://${self:custom.config.securityApiGatewayRandomString}.execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}/verifyCode
 
@@ -150,6 +160,24 @@ resources:
         TimeToLiveSpecification:
           AttributeName: expiresAt
           Enabled: true
+    EventsTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        TableName: ${self:custom.config.eventsTableName}
+        AttributeDefinitions:
+          - AttributeName: "domain"
+            AttributeType: "S"
+          - AttributeName: "id"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "domain"
+            KeyType: "HASH"
+          - AttributeName: "id"
+            KeyType: "RANGE"
+        BillingMode: PAY_PER_REQUEST
+        Tags:
+          - Key: "Purpose"
+            Value: "EventSourcing"
     # API Gateway
     GatewayResponseDefault4XX:
       Type: 'AWS::ApiGateway::GatewayResponse'
@@ -185,3 +213,4 @@ resources:
       Type: 'AWS::SQS::Queue'
       Properties:
         QueueName: ReservationBusDlq
+

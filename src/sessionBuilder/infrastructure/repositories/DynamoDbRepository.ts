@@ -49,12 +49,6 @@ class DynamoDbRepository implements Repository {
 
     this.docClient = new DynamoDBClient({
       region: this.region,
-      credentials: {
-        accessKeyId: "ASIA5FTZBMSSCSGW4RC4",
-        secretAccessKey: "HClGzxpnENzUXgnIUHcrNp8pPQtA9XEs/LQjgii6",
-        sessionToken:
-          "IQoJb3JpZ2luX2VjEK7//////////wEaCXVzLWVhc3QtMSJGMEQCICB7yU0q8eRg0qQO2piexR3Rd8GxK7Mx7nbPK0+b8MR4AiAQ7oiuwrmiW8lTtvAP9fFZPUwkC3N3P7QK+pa7wwYXQirxAgg3EAAaDDkwNTQxODIwNDMyNCIMCWUtei2+2rWzOPhSKs4CseRMzbkcfneZcP7/f+guP+YfjO0UFX7WzWl3ljyLaAFCEbQENu+weEgGf0TSSIPhOZYevC4hTqZykb5sZ6R8PyekIXB9/CbUWl1hnlPAUFfdNtSdmpai0Qr/T23QkZnjw+J8vS1WKIQ9xRqd66OeGnlVaWwF3lEkaAUMGgoEVtIs5SlMwyrZe5FynJ3nHv9HNTEPFTQZAzhSukSEOHbCJsUS1WgXfTn8E0/9Y7C7Of6HiFcEqElncNyysgxQJOMJG53QAQxuuXUX+SClu/Z6iNoklzgtYMVxiU9xTSJdjfqWbs6Tu9xysUKgf+RPXhyNTp9a+s6E3CiQImjV1ndSfHtJMHMZLPgUDZamowdPaJokpt8rnmY0UIekCEU3LGxviedOGh5LncJoX5i3xd1p6FTN9MCNm1mx1uYuwowAMJc2hGJUWJZUU6QNpalayTDx6uOyBjqoATvKt36f1WFDYawNpd1p3v7yBTnQmBmuH4W+6iCGfWHV2svt9QPs0KRKLJVpv65h7mOL8FQwQQyaqkqTq1/vMt2LJ23ZPjEiyARpPHaCxWGTbnzkWEJ4BXtoQi1EmyV1h3LpgOBUsNl4k1S01xep/YEUGKrflRL+InoFmNXoaDSR+2SXd5jR6DCndxtonK4BLIZUrWg0JovY87FWKqYQc/534J6BWHMgWw==",
-      },
     });
 
     this.docClient.middlewareStack.add(
@@ -87,10 +81,12 @@ class DynamoDbRepository implements Repository {
         ? JSON.parse(detail["data"])
         : detail["data"];
 
+    const eventsTableName = process.env.EVENTS_TABLE_NAME || ""; 
+
     const command = {
-      TableName: this.tableName,
+      TableName: eventsTableName,
       Item: {
-        itemType: { S: "EVENT" },
+        domain: { S: "SESSIONS_CREATION" },
         id: { S: randomUUID() },
         eventTime: { S: detail["metadata"]["timestamp"] },
         eventType: { S: data["event"] },
